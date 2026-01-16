@@ -30,19 +30,19 @@ Requires `jq` and `curl`.
 ## Usage
 
 ```bash
-# Basic
-echo "Message body here" | resend-email recipient@example.com "Subject line"
+# Basic (using -m flag)
+resend-email -m "Message body here" recipient@example.com "Subject line"
 
 # Multiple recipients (comma-separated, max 50)
-echo "Hey team" | resend-email "alice@x.com, bob@y.com" "Update"
+resend-email -m "Hey team" "alice@x.com, bob@y.com" "Update"
 
 # With attachment
-echo "See attached" | resend-email recipient@example.com "Report" ./report.pdf
+resend-email -m "See attached" recipient@example.com "Report" ./report.pdf
 
 # Multiple attachments
-echo "Files" | resend-email recipient@example.com "Documents" a.pdf b.png c.zip
+resend-email -m "Files" recipient@example.com "Documents" a.pdf b.png c.zip
 
-# From a file
+# Pipe from file (alternative to -m)
 cat drafted-email.txt | resend-email client@example.com "Follow up"
 ```
 
@@ -83,8 +83,8 @@ Ask user for the report content, then send to team@company.com with subject "Wee
 
 ## How it works
 
-- Reads email body from stdin
-- First arg is recipient(s) - comma-separated for multiple (max 50)
-- Second arg is subject
+- `-m "body"` flag for message body (or pipe to stdin)
+- First positional arg is recipient(s) - comma-separated for multiple (max 50)
+- Second positional arg is subject
 - Remaining args are file paths to attach (base64 encoded)
 - Config lives in `~/.config/resend/env`

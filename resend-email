@@ -1,27 +1,35 @@
 #!/bin/bash
 # resend-email - send email via Resend API
-# Usage: echo "body" | resend-email <to> <subject> [attachments...]
+# Usage: resend-email -m "body" <to> <subject> [attachments...]
+#    or: echo "body" | resend-email <to> <subject> [attachments...]
 
 set -e
 
-# Load config
 source ~/.config/resend/env
 
-# Args
+# Parse -m flag for message body
+BODY=""
+if [[ "$1" == "-m" ]]; then
+    BODY="$2"
+    shift 2
+fi
+
 TO_INPUT="$1"
 SUBJECT="$2"
-shift 2 2>/dev/null || { echo "Usage: echo \"body\" | resend-email <to> <subject> [attachments...]" >&2; exit 1; }
+shift 2 2>/dev/null || { echo "Usage: resend-email -m \"body\" <to> <subject> [attachments...]" >&2; exit 1; }
 
-# Temp file for payload (handles large attachments)
+# If no -m flag, read from stdin
+if [[ -z "$BODY" ]]; then
+    BODY=$(cat)
+fi
+[[ -n "$BODY" ]] || { echo "Error: empty message body (use -m \"body\" or pipe to stdin)" >&2; exit 1; }
+
+# Temp file for payload
 PAYLOAD=$(mktemp)
 trap "rm -f $PAYLOAD" EXIT
 
 # Build recipients JSON (comma-separated -> array)
 TO=$(echo "$TO_INPUT" | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | jq -R . | jq -s .)
-
-# Read body from stdin
-BODY=$(cat)
-[[ -n "$BODY" ]] || { echo "Error: empty message body (pipe content to stdin)" >&2; exit 1; }
 
 # Start JSON
 jq -n \
@@ -49,7 +57,6 @@ if [[ $# -gt 0 ]]; then
     done
     echo ']' >> "$ATTACH_FILE"
 
-    # Merge attachments into payload
     jq --slurpfile att "$ATTACH_FILE" '. + {attachments: $att[0]}' "$PAYLOAD" > "${PAYLOAD}.tmp"
     mv "${PAYLOAD}.tmp" "$PAYLOAD"
 fi
@@ -60,7 +67,6 @@ RESPONSE=$(curl -s -X POST 'https://api.resend.com/emails' \
     -H 'Content-Type: application/json' \
     -d @"$PAYLOAD")
 
-# Check for error
 if echo "$RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
     echo "Error: $(echo "$RESPONSE" | jq -r '.error.message')" >&2
     exit 1
