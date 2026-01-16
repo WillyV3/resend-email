@@ -1,0 +1,55 @@
+#!/bin/bash
+# resend-email - send email via Resend API
+# Usage: echo "body" | resend-email <to> <subject> [attachments...]
+
+set -e
+
+# Load config
+source ~/.config/resend/env
+
+# Args
+TO="$1"
+SUBJECT="$2"
+shift 2 2>/dev/null || { echo "Usage: echo \"body\" | resend-email <to> <subject> [attachments...]" >&2; exit 1; }
+
+# Read body from stdin
+BODY=$(cat)
+
+# Build attachments JSON array
+ATTACHMENTS="[]"
+if [[ $# -gt 0 ]]; then
+    ATTACHMENTS="["
+    FIRST=true
+    for FILE in "$@"; do
+        [[ -f "$FILE" ]] || { echo "File not found: $FILE" >&2; exit 1; }
+        B64=$(base64 -w 0 "$FILE")
+        FNAME=$(basename "$FILE")
+        $FIRST || ATTACHMENTS+=","
+        ATTACHMENTS+="{\"filename\":\"$FNAME\",\"content\":\"$B64\"}"
+        FIRST=false
+    done
+    ATTACHMENTS+="]"
+fi
+
+# Build JSON payload
+JSON=$(jq -n \
+    --arg from "$RESEND_FROM" \
+    --arg to "$TO" \
+    --arg subject "$SUBJECT" \
+    --arg text "$BODY" \
+    --argjson attachments "$ATTACHMENTS" \
+    '{from: $from, to: $to, subject: $subject, text: $text, attachments: $attachments}')
+
+# Send
+RESPONSE=$(curl -s -X POST 'https://api.resend.com/emails' \
+    -H "Authorization: Bearer $RESEND_API_KEY" \
+    -H 'Content-Type: application/json' \
+    -d "$JSON")
+
+# Check for error
+if echo "$RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
+    echo "Error: $(echo "$RESPONSE" | jq -r '.error.message')" >&2
+    exit 1
+fi
+
+echo "$RESPONSE" | jq -r '.id'
