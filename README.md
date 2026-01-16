@@ -45,6 +45,39 @@ cat drafted-email.txt | resend-email client@example.com "Follow up"
 
 Returns the Resend message ID on success, error message on failure.
 
+## Claude Code Integration
+
+If you use [Claude Code](https://claude.ai/code), you can have Claude send emails for you.
+
+### Install the command
+
+```bash
+cp claude-commands/email-client.md ~/.claude/commands/
+```
+
+### Use it
+
+```
+/email-client
+```
+
+Claude will ask for the recipient, subject, and message, then send it.
+
+### Build your own commands
+
+The script is pipe-friendly, so you can create custom Claude commands for specific workflows:
+
+```markdown
+---
+description: Send weekly report to team
+allowed-tools: Bash(resend-email:*)
+---
+
+Send the weekly status report.
+
+Ask user for the report content, then send to team@company.com with subject "Weekly Status Report - [date]"
+```
+
 ## How it works
 
 - Reads email body from stdin
