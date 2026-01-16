@@ -8,9 +8,12 @@ set -e
 source ~/.config/resend/env
 
 # Args
-TO="$1"
+TO_INPUT="$1"
 SUBJECT="$2"
 shift 2 2>/dev/null || { echo "Usage: echo \"body\" | resend-email <to> <subject> [attachments...]" >&2; exit 1; }
+
+# Build recipients JSON (comma-separated -> array)
+TO=$(echo "$TO_INPUT" | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | jq -R . | jq -s .)
 
 # Read body from stdin
 BODY=$(cat)
@@ -34,7 +37,7 @@ fi
 # Build JSON payload
 JSON=$(jq -n \
     --arg from "$RESEND_FROM" \
-    --arg to "$TO" \
+    --argjson to "$TO" \
     --arg subject "$SUBJECT" \
     --arg text "$BODY" \
     --argjson attachments "$ATTACHMENTS" \

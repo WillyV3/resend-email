@@ -1,6 +1,6 @@
 # resend-email
 
-Unix-style CLI for sending emails via Resend API. Pipe-friendly. Supports attachments.
+Unix-style CLI for sending emails via Resend API. Pipe-friendly. Supports attachments and multiple recipients.
 
 ## Setup
 
@@ -32,6 +32,9 @@ Requires `jq` and `curl`.
 ```bash
 # Basic
 echo "Message body here" | resend-email recipient@example.com "Subject line"
+
+# Multiple recipients (comma-separated, max 50)
+echo "Hey team" | resend-email "alice@x.com, bob@y.com" "Update"
 
 # With attachment
 echo "See attached" | resend-email recipient@example.com "Report" ./report.pdf
@@ -81,7 +84,7 @@ Ask user for the report content, then send to team@company.com with subject "Wee
 ## How it works
 
 - Reads email body from stdin
-- First arg is recipient
+- First arg is recipient(s) - comma-separated for multiple (max 50)
 - Second arg is subject
 - Remaining args are file paths to attach (base64 encoded)
 - Config lives in `~/.config/resend/env`
