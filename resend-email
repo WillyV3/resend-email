@@ -21,6 +21,7 @@ TO=$(echo "$TO_INPUT" | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' 
 
 # Read body from stdin
 BODY=$(cat)
+[[ -n "$BODY" ]] || { echo "Error: empty message body (pipe content to stdin)" >&2; exit 1; }
 
 # Start JSON
 jq -n \
